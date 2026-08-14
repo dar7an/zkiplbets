@@ -1,0 +1,52 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --color-canvas: oklch(0.175 0.02 145);
+  --color-panel: oklch(0.22 0.018 145);
+  --color-panel-2: oklch(0.255 0.016 145);
+  --color-line: oklch(0.34 0.014 145);
+  --color-ink: oklch(0.95 0.012 95);
+  --color-ink-soft: oklch(0.78 0.018 145);
+  --color-ink-faint: oklch(0.62 0.02 145);
+  --color-accent: oklch(0.84 0.11 92);
+  --color-accent-ink: oklch(0.22 0.04 92);
+  --color-home: oklch(0.78 0.055 220);
+  --color-away: oklch(0.8 0.08 58);
+  --color-danger: oklch(0.74 0.14 25);
+  --color-ring: oklch(0.86 0.1 92);
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-feature-settings: 'ss02' 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}

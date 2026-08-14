@@ -12,6 +12,7 @@ keys
 contracts/.local-market
 web/dist
 web/e2e/*.png
+web/e2e-failure.png
 shared/dist
 contracts/dist
 *.log
