@@ -48,8 +48,9 @@ web/         Vite + React 19 ticket UI
 ```
 
 Node 22, TypeScript 5.8, o1js ^2.15, Vitest, ESLint 9. Unit tests use mock
-proofs (`proofsEnabled: false`). A real-proof smoke exists as
-`npm run test:proofs -w @zk-cricket/contracts` (slow; not in PR CI).
+proofs (`proofsEnabled: false`). A real-proof smoke is in CI
+(`npm run test:proofs -w @zk-cricket/contracts`); it compiled and placed a bet
+in about 36s on this machine.
 
 Live oracle fetches are gated: `RUN_LIVE_ORACLE=1 npm run test:live -w @zk-cricket/contracts`.
 
