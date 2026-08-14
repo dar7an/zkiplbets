@@ -1,0 +1,15 @@
+{
+  "data": {
+    "fixtureID": 67377,
+    "localTeamID": 38,
+    "visitorTeamID": 39,
+    "startingAt": 1789493400000,
+    "localTeamName": "England",
+    "localTeamCode": "ENG",
+    "visitorTeamName": "Sri Lanka",
+    "visitorTeamCode": "SL",
+    "timestamp": 1786678809473
+  },
+  "signature": "7mXWtAvK9ZYLudZSN1Y1KsQnNccT6zgAhi7Z7Ahdx8kCZGC2VLbjsxq81mKBNKFJrxyWCLJYGRi6Fua3ZDpTMCZJTUKb73Mn",
+  "publicKey": "B62qp7eyQ9RKwdYBLWNzxmfKntP6dPDrTSQ1ukyYsV4FoTkJH6sfuPU"
+}

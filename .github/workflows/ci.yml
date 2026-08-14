@@ -1,28 +1,43 @@
-name: zkApp tests
+name: CI
+
 on:
   push:
   pull_request:
   workflow_dispatch: {}
+
 jobs:
   test:
     timeout-minutes: 30
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: true
-      matrix:
-        node: [18, 20]
-        os: [ubuntu-latest]
+    runs-on: ubuntu-latest
     steps:
-      - name: Set up NodeJS
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
-      - name: Git checkout
-        uses: actions/checkout@v4
-      - name: NPM ci, build, & test
-        run: |
-          npm ci
-          npm run build --if-present
-          npm test
+          node-version: '22'
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test
+      - name: LocalBlockchain E2E
+        run: npm run test:e2e
+
+  live-oracle:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Live oracle (gated)
+        run: npm run test:live -w @zk-cricket/contracts
         env:
-          CI: true
+          RUN_LIVE_ORACLE: '1'

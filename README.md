@@ -1,206 +1,118 @@
-# ZK Cricket Trader
+# Match market (Mina parimutuel)
 
-A decentralized betting platform built on the Mina Protocol that allows users to place bets on cricket fixtures in a trustless and transparent manner. The smart contract leverages oracle-verified fixture data and uses a Merkle tree to efficiently store user bets off-chain.
+A **binary parimutuel match-winner market** on Mina. You back one side of a
+single cricket fixture. Stakes are real MINA held in a zkApp. When the match
+has a winner, winners split the pool; losers get 0. Tie, no-result, abandoned,
+or cancelled voids the market and refunds stakes.
 
-## 🏗️ Architecture
+This is not a trader, not an order book, and not a trustless unlimited
+sportsbook. The previous README claimed those things. They were not true.
 
-- **zkApp Contract**: Verifies oracle signatures and manages bet state using Merkle trees
-- **Oracle Integration**: Retrieves verified fixture data from [sportmonksoracle](https://github.com/dar7an/sportmonksoracle)
-- **Cryptographic Verification**: All fixture data is cryptographically signed by the oracle before being accepted on-chain
+## What is actually on-chain
 
-## 🚀 Features
+- Schnorr verification of a SportMonks oracle signature. Field order is
+  `[fixtureID, localTeamID, visitorTeamID, startingAt]` (status adds
+  `[status, winnerTeamID]`). That encoding matches
+  [sportmonksoracle](https://github.com/dar7an/sportmonksoracle).
+- A Poseidon commitment of those fixture fields plus a **market nonce**, so an
+  old result cannot pay a new market.
+- Merkle-append of `Poseidon(user, teamID, amount, marketNonce)` into a tree of
+  **height 8 → 128 tickets**, not unlimited bets. Claims need a witness from
+  the operator. Without a witness, you cannot claim.
+- Escrow: `placeBet` transfers nanomina (1 MINA = 10⁹) into the zkApp.
+- Lock, settle, void, claim. Settle only on oracle status `Finished` with a
+  winner in `{local, visitor}`. Void on cancelled, or finished with no side
+  that played (tie).
 
-- **Trustless Betting**: Users can place bets on cricket matches with cryptographic proof of fixture integrity
-- **Oracle Verification**: Fixture data and match status are verified through cryptographic signatures
-- **Efficient Storage**: Uses Merkle trees to store unlimited bets off-chain while maintaining on-chain verification
-- **End-to-End Testing**: Comprehensive test suite covering all functionality
+Trusted oracle public key (set once with `initialize()`, rotate by redeploy):
 
-## 📋 Prerequisites
+`B62qp7eyQ9RKwdYBLWNzxmfKntP6dPDrTSQ1ukyYsV4FoTkJH6sfuPU`
 
-- Node.js (v18 or higher)
-- npm or yarn
-- o1js library
+Team **names** are unsigned display data. Signed IDs are what the circuit
+checks. The UI reads camelCase `localTeamName` from the live oracle schema.
 
-## 🛠️ Installation
+Parimutuel, 0 rake:
+
+```
+payout_i = floor( stake_i × (Σ stakes) / (Σ winning stakes) )
+```
+
+Integer dust stays in the zkApp. Losers receive 0.
+
+## Repo layout
+
+```
+shared/      Fixture/status types, SportMonks allowlist, parimutuel math
+contracts/   BetMarket zkApp, persistent Merkle operator, LocalBlockchain demo
+web/         Vite + React 19 ticket UI
+```
+
+Node 22, TypeScript 5.8, o1js ^2.15, Vitest, ESLint 9. Unit tests use mock
+proofs (`proofsEnabled: false`). A real-proof smoke exists as
+`npm run test:proofs -w @zk-cricket/contracts` (slow; not in PR CI).
+
+Live oracle fetches are gated: `RUN_LIVE_ORACLE=1 npm run test:live -w @zk-cricket/contracts`.
+
+## Local demo
+
+You do not need Devnet keys.
 
 ```bash
-git clone https://github.com/dar7an/zk-cricket-trader
-cd zk-cricket-trader
 npm install
+npm run demo
 ```
 
-## 🧪 Testing
+This starts:
 
-Run the complete test suite:
+- LocalBlockchain + zkApp at `http://127.0.0.1:8787`
+- UI at `http://localhost:5173`
+
+In the UI choose **Open local demo** (not a wallet). Load the recorded
+England vs Sri Lanka fixture if it is not already set, place MINA on both
+sides with two demo accounts, lock, settle or void, then claim. Place bet
+only reports success when the server returns a transaction hash.
+
+Auro: **Connect Auro wallet** calls `window.mina.requestAccounts`. There is no
+Devnet zkApp address in this checkout, so Auro cannot place a bet here. The UI
+says that instead of faking a transaction.
+
+## Tests
 
 ```bash
-npm test
+npm test          # shared unit tests + contract constraint tests
+npm run test:e2e  # two bettors, settle, winner paid, loser 0, void refund
+npm run test:ui   # Chrome against a running `npm run demo` (not in CI)
+npm run lint
+npm run typecheck
 ```
 
-The test suite includes:
-- ✅ Contract deployment and initialization
-- ✅ Oracle signature verification (hardcoded data)
-- ✅ Live oracle integration (fixture endpoint)
-- ✅ Live oracle integration (status endpoint)
-- ✅ Bet placement and Merkle tree updates
+`npm audit` on this lockfile is clean. The old Jest 27 / `form-data` tree is gone.
 
-## 🔗 Oracle Integration
+Covered failures: invalid signature, wrong sender, occupied leaf, team not in
+the fixture, `updateFixture` after bets exist, zero stake, double settle.
 
-This zkApp integrates with the [SportMonks Oracle](https://github.com/dar7an/sportmonksoracle) which provides:
+## Devnet deploy
 
-### Fixture Endpoint
-`GET https://sportmonksoracle.vercel.app/fixture`
+`config.json` deploy aliases are empty until you run zkapp-cli. Local demo is
+the supported path.
 
-Returns the next upcoming cricket fixture with cryptographic signature:
+1. Install [zkapp-cli](https://docs.minaprotocol.com/zkapps/tutorials/hello-world).
+2. `zk config` in this repo; fund a fee payer via the Mina faucet.
+3. Compile with proofs: `npx tsx -e "import { BetMarket } from './contracts/src/Bet.ts'; await BetMarket.compile()"`
+   (or a small deploy script using the same `BetMarket` class).
+4. Deploy the `BetMarket` class, then call `initialize(oraclePublicKey)` signed
+   with the zkApp key. Use the production oracle key above for live SportMonks
+   signatures.
+5. Point the web app at that address and send transactions through Auro. Do
+   not ship a UI that toasts success without a tx hash.
 
-```json
-{
-  "data": {
-    "fixtureID": 66230,
-    "localTeamID": 39,
-    "visitorTeamID": 37,
-    "startingAt": 1752154200000,
-    "localteam_name": "Sri Lanka",
-    "localteam_code": "SL",
-    "visitorteam_name": "Bangladesh",
-    "visitorteam_code": "BGD",
-    "timestamp": 1750443291387
-  },
-  "signature": "7mXMSfa76SyThnDoASzsBSr1kPLZdYTRwdpn4y3eQS428aX5Aw5WAuuSkbo7zeAoWP2WMVC1xfBa557NQchW5e3P8sgAQX55",
-  "publicKey": "B62qp7eyQ9RKwdYBLWNzxmfKntP6dPDrTSQ1ukyYsV4FoTkJH6sfuPU"
-}
-```
+## Limits you should not paper over
 
-### Status Endpoint
-`GET https://sportmonksoracle.vercel.app/status/{fixtureID}`
+- One active fixture.
+- 128 tickets.
+- Operator stores the Merkle tree (file-backed JSON + mutex). The operator can
+  withhold witnesses.
+- Oracle key compromise is market compromise.
+- Demo proving uses mock proofs. Real proofs are a separate, slow compile.
 
-Returns the current status of a specific fixture:
-
-```json
-{
-  "data": {
-    "fixtureID": 66230,
-    "localTeamID": 39,
-    "visitorTeamID": 37,
-    "startingAt": 1752154200000,
-    "status": 1,
-    "winnerTeamID": 0,
-    "timestamp": 1750443564321
-  },
-  "signature": "7mXXWXhc35tXAVJdq6Lr2FuW6nkJqGGiZQ2wVWnY7PjTHX8qE57798QB4N96qtZPWWh5jCDt5aeEaM1zf9rgDANap1Jy5nPU",
-  "publicKey": "B62qp7eyQ9RKwdYBLWNzxmfKntP6dPDrTSQ1ukyYsV4FoTkJH6sfuPU"
-}
-```
-
-## 🔐 Signature Scheme
-
-The oracle signs specific field arrays using Schnorr signatures on the Pallas curve:
-
-**Fixture Signature**: `[fixtureID, localTeamID, visitorTeamID, startingAt]`
-**Status Signature**: `[fixtureID, localTeamID, visitorTeamID, startingAt, status, winnerTeamID]`
-
-The zkApp verifies these signatures on-chain before accepting any fixture data.
-
-## 📁 Project Structure
-
-```
-zk-cricket-trader/
-├── frontend/
-│   ├── index.html       # Web interface for cricket betting
-│   ├── vercel.json      # Frontend deployment configuration
-│   └── .vercelignore    # Frontend deployment exclusions
-├── src/
-│   ├── Bet.ts           # Main zkApp smart contract
-│   ├── BetStorage.ts    # Off-chain Merkle tree management
-│   ├── structs.ts       # Data structures and types
-│   ├── oracleUtils.ts   # Oracle signature utilities
-│   └── Bet.test.ts      # Comprehensive test suite
-├── package.json         # Contract dependencies and scripts
-├── tsconfig.json        # TypeScript configuration
-└── README.md            # This file
-```
-
-## 🎯 Usage
-
-### Deploy the Contract
-
-```typescript
-import { Bet } from './src/Bet.js';
-
-// Deploy and initialize
-const zkApp = new Bet(zkAppAddress);
-await zkApp.deploy();
-```
-
-### Update Fixture Data
-
-```typescript
-// Fetch from oracle
-const response = await fetch('https://sportmonksoracle.vercel.app/fixture');
-const data = await response.json();
-
-// Update on-chain
-await zkApp.updateFixture(
-  Field(data.data.fixtureID),
-  Field(data.data.localTeamID),
-  Field(data.data.visitorTeamID),
-  Field(data.data.startingAt),
-  Signature.fromBase58(data.signature)
-);
-```
-
-### Place a Bet
-
-```typescript
-import { BetInfo, BetStorage } from './src/index.js';
-
-const betInfo = new BetInfo({
-  userPublicKey: userPublicKey,
-  teamID: Field(39), // Sri Lanka
-  amount: Field(100)
-});
-
-const betStorage = new BetStorage();
-const witness = betStorage.getWitness(betStorage.nextIndex);
-
-await zkApp.placeBet(betInfo, witness);
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details.
-
-## 🔗 Related Projects
-
-- [SportMonks Oracle](https://github.com/dar7an/sportmonksoracle) - Provides verified cricket fixture data
-- [Mina Protocol](https://minaprotocol.com) - The zero-knowledge blockchain platform
-- [o1js](https://github.com/o1-labs/o1js) - TypeScript framework for zkApps
-
-## 🌐 Frontend Demo
-
-**Live Demo**: [Cricket Trader on Vercel](https://zk-cricket-trader.vercel.app)
-
-The frontend provides a user-friendly interface where anyone can:
-- View live cricket matches from the oracle
-- Place bets on their favorite teams
-- Experience the app without technical knowledge
-
-### Local Frontend Development
-```bash
-# Serve the frontend locally
-cd frontend
-python -m http.server 8000
-# Visit http://localhost:8000
-```
-
----
-
-Built with ❤️ on Mina Protocol
+Apache-2.0. Built on Mina / o1js.

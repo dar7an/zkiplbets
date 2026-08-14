@@ -1,0 +1,13 @@
+{
+  "data": {
+    "fixtureID": 67377,
+    "localTeamID": 38,
+    "visitorTeamID": 39,
+    "startingAt": 1789493400000,
+    "status": 1,
+    "winnerTeamID": 0,
+    "timestamp": 1786678814334
+  },
+  "signature": "7mXDUn2dNNU7hQUdEQfu1CtsGXE78WRqJxCuHaw3JWxXuzUWRoBbc5SvFcmqZfVXtbmtk5aD7Fw5dYQJ7KgXd6D44BaBHDGM",
+  "publicKey": "B62qp7eyQ9RKwdYBLWNzxmfKntP6dPDrTSQ1ukyYsV4FoTkJH6sfuPU"
+}

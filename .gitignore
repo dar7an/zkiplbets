@@ -1,13 +1,18 @@
-# NodeJS
 node_modules
+dist
 build
 coverage
-
-# Editor
-.vscode
-
-# System
 .DS_Store
-
-# Never commit keys to Git!
+.vscode
 keys
+*.pem
+.env
+.env.local
+.local-market
+contracts/.local-market
+web/dist
+web/e2e/*.png
+shared/dist
+contracts/dist
+*.log
+.turbo

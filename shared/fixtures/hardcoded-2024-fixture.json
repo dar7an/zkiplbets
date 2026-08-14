@@ -1,0 +1,15 @@
+{
+  "data": {
+    "fixtureID": 59213,
+    "localTeamID": 6,
+    "visitorTeamID": 5,
+    "startingAt": 1714744800000,
+    "localTeamName": "Hardcoded local",
+    "localTeamCode": "LOC",
+    "visitorTeamName": "Hardcoded visitor",
+    "visitorTeamCode": "VIS"
+  },
+  "signature": "7mXEX49AzUUBfARt6XXK1yAaPA2TprEhh3C3C7pLNULL8ifiH7arjUNAJYUNX7qgEEGLKdBxqayg51FzgaTUEYL3kzfFbg6j",
+  "publicKey": "B62qp7eyQ9RKwdYBLWNzxmfKntP6dPDrTSQ1ukyYsV4FoTkJH6sfuPU",
+  "note": "May 2024 production-oracle signature from the original lab tests. Names are unsigned placeholders."
+}
